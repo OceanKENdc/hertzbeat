@@ -190,7 +190,7 @@ params:
     # required-true or false
     required: false
     # param field input placeholder
-    placeholder: 'Snmp authPassword for v3'
+    placeholder: 'Snmp privPassphrase for v3'
     # dependent parameter values list
     depend:
       snmpVersion:
@@ -335,11 +335,23 @@ metrics:
           ja-JP: 番号
       - field: descr
         type: 1
+        i18n:
+          zh-CN: 接口描述
+          en-US: Interface Description
+          ja-JP: インターフェース説明
+      - field: if_name
+        type: 1
         label: true
         i18n:
           zh-CN: 接口名称
           en-US: Interface Name
-          ja-JP: ネットワークカード名
+          ja-JP: インターフェース名
+      - field: if_alias
+        type: 1
+        i18n:
+          zh-CN: 端口别名
+          en-US: Port Alias
+          ja-JP: ポートエイリアス
       - field: mtu
         type: 0
         unit: 'byte'
@@ -349,49 +361,61 @@ metrics:
           ja-JP: MTU
       - field: speed
         type: 0
-        unit: 'MB/s'
+        unit: 'Mbps'
         i18n:
           zh-CN: 接口速率
           en-US: Interface Speed
-          ja-JP: ネットワークカード速度
+          ja-JP: インターフェース速度
       - field: in_octets
         type: 0
-        unit: 'MByte'
+        unit: 'Byte'
         i18n:
           zh-CN: 入流量
           en-US: In Octets
-          ja-JP: 受信されたバイト数
+          ja-JP: 受信バイト数
+      - field: in_ucast_pkts
+        type: 0
+        i18n:
+          zh-CN: 入单播包数
+          en-US: In Unicast Packets
+          ja-JP: 受信ユニキャストパケット数
       - field: in_discards
         type: 0
         i18n:
           zh-CN: 入丢包数
           en-US: In Discards
-          ja-JP: 受信されたパケットのロス数
+          ja-JP: 受信破棄パケット数
       - field: in_errors
         type: 0
         i18n:
           zh-CN: 入错包数
           en-US: In Errors
-          ja-JP: 受信異常パケット数
+          ja-JP: 受信エラーパケット数
       - field: out_octets
         type: 0
-        unit: 'MByte'
+        unit: 'Byte'
         i18n:
           zh-CN: 出流量
           en-US: Out Octets
-          ja-JP: 転送されたバイト数
+          ja-JP: 送信バイト数
+      - field: out_ucast_pkts
+        type: 0
+        i18n:
+          zh-CN: 出单播包数
+          en-US: Out Unicast Packets
+          ja-JP: 送信ユニキャストパケット数
       - field: out_discards
         type: 0
         i18n:
           zh-CN: 出丢包数
           en-US: Out Discards
-          ja-JP: 転送されたパケットのロス数
+          ja-JP: 送信破棄パケット数
       - field: out_errors
         type: 0
         i18n:
           zh-CN: 出错包数
           en-US: Out Errors
-          ja-JP: 転送異常パケット数
+          ja-JP: 送信エラーパケット数
       - field: admin_status
         type: 1
         i18n:
@@ -408,12 +432,16 @@ metrics:
     aliasFields:
       - ifIndex
       - ifDescr
+      - ifName
+      - ifAlias
       - ifMtu
-      - ifSpeed
-      - ifInOctets
+      - ifHighSpeed
+      - ifHCInOctets
+      - ifInUcastPkts
       - ifInDiscards
       - ifInErrors
-      - ifOutOctets
+      - ifHCOutOctets
+      - ifOutUcastPkts
       - ifOutDiscards
       - ifOutErrors
       - ifAdminStatus
@@ -423,12 +451,16 @@ metrics:
     calculates:
       - index=ifIndex
       - descr=ifDescr
+      - if_name=ifName
+      - if_alias=ifAlias
       - mtu=ifMtu
-      - speed=ifSpeed / 1000 / 1000
-      - in_octets=ifInOctets / 1000 / 1000
+      - speed=ifHighSpeed
+      - in_octets=ifHCInOctets
+      - in_ucast_pkts=ifInUcastPkts
       - in_discards=ifInDiscards
       - in_errors=ifInErrors
-      - out_octets=ifOutOctets / 1000 / 1000
+      - out_octets=ifHCOutOctets
+      - out_ucast_pkts=ifOutUcastPkts
       - out_discards=ifOutDiscards
       - out_errors=ifOutErrors
       - admin_status=ifAdminStatus
@@ -450,13 +482,81 @@ metrics:
       oids:
         ifIndex: 1.3.6.1.2.1.2.2.1.1
         ifDescr: 1.3.6.1.2.1.2.2.1.2
+        ifName: 1.3.6.1.2.1.31.1.1.1.1
+        ifAlias: 1.3.6.1.2.1.31.1.1.1.18
         ifMtu: 1.3.6.1.2.1.2.2.1.4
-        ifSpeed: 1.3.6.1.2.1.2.2.1.5
-        ifInOctets: 1.3.6.1.2.1.2.2.1.10
+        ifHighSpeed: 1.3.6.1.2.1.31.1.1.1.15
+        ifHCInOctets: 1.3.6.1.2.1.31.1.1.1.6
+        ifInUcastPkts: 1.3.6.1.2.1.2.2.1.11
         ifInDiscards: 1.3.6.1.2.1.2.2.1.13
         ifInErrors: 1.3.6.1.2.1.2.2.1.14
-        ifOutOctets: 1.3.6.1.2.1.2.2.1.16
+        ifHCOutOctets: 1.3.6.1.2.1.31.1.1.1.10
+        ifOutUcastPkts: 1.3.6.1.2.1.2.2.1.17
         ifOutDiscards: 1.3.6.1.2.1.2.2.1.19
         ifOutErrors: 1.3.6.1.2.1.2.2.1.20
         ifAdminStatus: 1.3.6.1.2.1.2.2.1.7
         ifOperStatus: 1.3.6.1.2.1.2.2.1.8
+
+  - name: entity
+    i18n:
+      zh-CN: 设备硬件状态
+      en-US: Device Hardware Status
+    priority: 2
+    fields:
+      - field: entity_name
+        type: 1
+        label: true
+        i18n:
+          zh-CN: 实体名称
+          en-US: Entity Name
+          ja-JP: エンティティ名
+      - field: cpu_usage
+        type: 0
+        unit: '%'
+        i18n:
+          zh-CN: CPU使用率
+          en-US: CPU Usage
+          ja-JP: CPU使用率
+      - field: mem_usage
+        type: 0
+        unit: '%'
+        i18n:
+          zh-CN: 内存使用率
+          en-US: Memory Usage
+          ja-JP: メモリ使用率
+      - field: temperature
+        type: 0
+        unit: '℃'
+        i18n:
+          zh-CN: 温度
+          en-US: Temperature
+          ja-JP: 温度
+    aliasFields:
+      - entPhysicalName
+      - hwEntityCpuUsage
+      - hwEntityMemUsage
+      - hwEntityTemperature
+    calculates:
+      - entity_name=entPhysicalName
+      - cpu_usage=hwEntityCpuUsage
+      - mem_usage=hwEntityMemUsage
+      - temperature=hwEntityTemperature
+    protocol: snmp
+    snmp:
+      host: ^_^host^_^
+      port: ^_^port^_^
+      username: ^_^username^_^
+      authPassphrase: ^_^authPassphrase^_^
+      privPassphrase: ^_^privPassphrase^_^
+      privPasswordEncryption: ^_^privPasswordEncryption^_^
+      authPasswordEncryption: ^_^authPasswordEncryption^_^
+      contextName: ^_^contextName^_^
+      timeout: ^_^timeout^_^
+      community: ^_^community^_^
+      version: ^_^snmpVersion^_^
+      operation: walk
+      oids:
+        entPhysicalName: 1.3.6.1.2.1.47.1.1.1.1.7
+        hwEntityCpuUsage: 1.3.6.1.4.1.2011.5.25.31.1.1.1.1.5
+        hwEntityMemUsage: 1.3.6.1.4.1.2011.5.25.31.1.1.1.1.7
+        hwEntityTemperature: 1.3.6.1.4.1.2011.5.25.31.1.1.1.1.11
