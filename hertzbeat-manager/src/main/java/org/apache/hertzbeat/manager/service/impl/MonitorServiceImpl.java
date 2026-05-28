@@ -77,10 +77,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -104,6 +107,8 @@ public class MonitorServiceImpl implements MonitorService {
     private static final Long MONITOR_ID_TMP = 1000000000L;
     private static final byte ALL_MONITOR_STATUS = 9;
     public static final String PARAM_FIELD_PORT = "port";
+    private static final String GRAFANA_TEMPLATE_PREFIX = "grafana/hertzbeat-";
+    private static final String GRAFANA_TEMPLATE_SUFFIX = "-zh-CN.json";
 
     @Autowired
     private ParamValidatorManager paramValidatorManager;
@@ -224,10 +229,7 @@ public class MonitorServiceImpl implements MonitorService {
             monitor.setId(monitorId);
             monitor.setJobId(jobId);
             // create grafana dashboard
-            if (monitor.getApp().equals(CommonConstants.PROMETHEUS) && grafanaDashboard != null
-                    && grafanaDashboard.isEnabled()) {
-                dashboardService.createOrUpdateDashboard(grafanaDashboard.getTemplate(), monitorId);
-            }
+            createGrafanaDashboardIfNeeded(monitor, grafanaDashboard, monitorId);
             monitorDao.save(monitor);
             paramDao.saveAll(params);
         } catch (Exception e) {
@@ -452,13 +454,7 @@ public class MonitorServiceImpl implements MonitorService {
             // we also think monitor change
             monitor.setGmtUpdate(LocalDateTime.now());
             // update or open grafana dashboard
-            if (monitor.getApp().equals(CommonConstants.PROMETHEUS) && grafanaDashboard != null) {
-                if (grafanaDashboard.isEnabled()) {
-                    dashboardService.createOrUpdateDashboard(grafanaDashboard.getTemplate(), monitorId);
-                } else {
-                    dashboardService.closeGrafanaDashboard(monitorId);
-                }
-            }
+            updateGrafanaDashboardIfNeeded(monitor, grafanaDashboard, monitorId);
             monitorDao.save(monitor);
             paramDao.saveAll(params);
         } catch (Exception e) {
@@ -945,5 +941,57 @@ public class MonitorServiceImpl implements MonitorService {
             throw new MonitorDetectException(collectRep.get(0).getMsg());
         }
         collectRep.forEach(CollectRep.MetricsData::close);
+    }
+
+    private void createGrafanaDashboardIfNeeded(Monitor monitor, GrafanaDashboard grafanaDashboard, long monitorId) {
+        if (monitor.getApp().equals(CommonConstants.PROMETHEUS) && grafanaDashboard != null
+                && grafanaDashboard.isEnabled()) {
+            dashboardService.createOrUpdateDashboard(grafanaDashboard.getTemplate(), monitorId);
+            return;
+        }
+        // auto-create dashboard from classpath template for apps like huawei_switch
+        String classpathTemplate = loadClasspathGrafanaTemplate(monitor.getApp());
+        if (classpathTemplate != null) {
+            try {
+                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId);
+            } catch (Exception e) {
+                log.warn("Failed to create Grafana dashboard from classpath template for app {}: {}",
+                        monitor.getApp(), e.getMessage());
+            }
+        }
+    }
+
+    private void updateGrafanaDashboardIfNeeded(Monitor monitor, GrafanaDashboard grafanaDashboard, long monitorId) {
+        if (monitor.getApp().equals(CommonConstants.PROMETHEUS) && grafanaDashboard != null) {
+            if (grafanaDashboard.isEnabled()) {
+                dashboardService.createOrUpdateDashboard(grafanaDashboard.getTemplate(), monitorId);
+            } else {
+                dashboardService.closeGrafanaDashboard(monitorId);
+            }
+            return;
+        }
+        // auto-update dashboard from classpath template for apps like huawei_switch
+        String classpathTemplate = loadClasspathGrafanaTemplate(monitor.getApp());
+        if (classpathTemplate != null) {
+            try {
+                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId);
+            } catch (Exception e) {
+                log.warn("Failed to update Grafana dashboard from classpath template for app {}: {}",
+                        monitor.getApp(), e.getMessage());
+            }
+        }
+    }
+
+    private String loadClasspathGrafanaTemplate(String app) {
+        String location = GRAFANA_TEMPLATE_PREFIX + app + GRAFANA_TEMPLATE_SUFFIX;
+        try {
+            ClassPathResource resource = new ClassPathResource(location);
+            if (resource.exists()) {
+                return resource.getContentAsString(StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            log.debug("No classpath Grafana template found for app {}: {}", app, e.getMessage());
+        }
+        return null;
     }
 }
