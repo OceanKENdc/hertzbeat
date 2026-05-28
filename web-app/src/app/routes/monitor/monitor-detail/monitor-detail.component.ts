@@ -93,6 +93,10 @@ export class MonitorDetailComponent implements OnInit, OnDestroy {
 
   favoriteTabIndex: number = 0;
 
+  // 华为交换机专用数据
+  portStatusData: any[] = [];
+  deviceHealthData: any[] = [];
+
   private io?: IntersectionObserver;
   private chartIo?: IntersectionObserver;
   private favoriteIo: IntersectionObserver | undefined;
@@ -205,6 +209,8 @@ export class MonitorDetailComponent implements OnInit, OnDestroy {
 
             this.metricsInfo = message.data.metrics || [];
             this.metrics = this.metricsInfo.map((metric: any) => metric.name);
+
+            this.loadSwitchData();
 
             setTimeout(() => {
               this.cdr.detectChanges();
@@ -633,6 +639,77 @@ export class MonitorDetailComponent implements OnInit, OnDestroy {
         }
       },
       error => {}
+    );
+  }
+
+  private mapSnmpStatus(value: string): string {
+    switch (value) {
+      case '1':
+        return 'up';
+      case '2':
+        return 'down';
+      case '3':
+        return 'testing';
+      default:
+        return value;
+    }
+  }
+
+  private loadSwitchData() {
+    if (this.app !== 'huawei_switch') return;
+
+    this.monitorSvc.getMonitorMetricsData(this.monitorId, 'interfaces').subscribe(
+      message => {
+        if (message.code === 0 && message.data) {
+          const fields = message.data.fields || [];
+          const valueRows = message.data.valueRows || [];
+          const fieldMap: { [key: string]: number } = {};
+          fields.forEach((field: any, index: number) => {
+            fieldMap[field.name] = index;
+          });
+          this.portStatusData = valueRows
+            .map((row: any) => {
+              const values = row.values || [];
+              return {
+                if_name: row.labels?.if_name || values[fieldMap['if_name']]?.origin || '',
+                speed: values[fieldMap['speed']]?.origin || '',
+                admin_status: this.mapSnmpStatus(values[fieldMap['admin_status']]?.origin || ''),
+                oper_status: this.mapSnmpStatus(values[fieldMap['oper_status']]?.origin || '')
+              };
+            })
+            .filter((item: any) => item.if_name);
+        }
+      },
+      error => {
+        console.error('Failed to load switch port status:', error);
+      }
+    );
+
+    this.monitorSvc.getMonitorMetricsData(this.monitorId, 'entity').subscribe(
+      message => {
+        if (message.code === 0 && message.data) {
+          const fields = message.data.fields || [];
+          const valueRows = message.data.valueRows || [];
+          const fieldMap: { [key: string]: number } = {};
+          fields.forEach((field: any, index: number) => {
+            fieldMap[field.name] = index;
+          });
+          this.deviceHealthData = valueRows
+            .map((row: any) => {
+              const values = row.values || [];
+              return {
+                name: row.labels?.entity_name || '',
+                cpu: parseFloat(values[fieldMap['cpu_usage']]?.origin) || 0,
+                mem: parseFloat(values[fieldMap['mem_usage']]?.origin) || 0,
+                temp: parseFloat(values[fieldMap['temperature']]?.origin) || 0
+              };
+            })
+            .filter((item: any) => item.name);
+        }
+      },
+      error => {
+        console.error('Failed to load switch device health:', error);
+      }
     );
   }
 

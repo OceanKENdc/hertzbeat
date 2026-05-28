@@ -98,6 +98,66 @@
             <!-- IO sentinel for lazy loading charts -->
             <div id="charts-load-sentinel" style="width: 100%; height: 1px"></div>
           </div>
+          <!-- 华为交换机端口状态摘要 -->
+          <ng-container *ngIf="app === 'huawei_switch' && (portStatusData.length > 0 || deviceHealthData.length > 0)">
+            <nz-divider [nzText]="'设备状态概览'" nzOrientation="left"></nz-divider>
+            <div nz-row [nzGutter]="16" style="margin-bottom: 16px">
+              <div nz-col nzSpan="12" *ngIf="deviceHealthData.length > 0">
+                <nz-card nzTitle="设备硬件状态" nzSize="small">
+                  <nz-table [nzData]="deviceHealthData" [nzPageSize]="10" nzSize="small" [nzShowPagination]="deviceHealthData.length > 10">
+                    <thead>
+                      <tr>
+                        <th>实体名称</th>
+                        <th>CPU使用率</th>
+                        <th>内存使用率</th>
+                        <th>温度</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of deviceHealthData">
+                        <td>{{ item.name }}</td>
+                        <td>
+                          <nz-progress [nzPercent]="item.cpu" nzSize="small" [nzStatus]="item.cpu > 85 ? 'exception' : item.cpu > 60 ? 'active' : 'normal'"></nz-progress>
+                        </td>
+                        <td>
+                          <nz-progress [nzPercent]="item.mem" nzSize="small" [nzStatus]="item.mem > 90 ? 'exception' : item.mem > 70 ? 'active' : 'normal'"></nz-progress>
+                        </td>
+                        <td>
+                          <span [style.color]="item.temp > 70 ? '#ff4d4f' : item.temp > 50 ? '#faad14' : '#52c41a'">{{ item.temp }}℃</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </nz-table>
+                </nz-card>
+              </div>
+              <div nz-col [nzSpan]="deviceHealthData.length > 0 ? 12 : 24" *ngIf="portStatusData.length > 0">
+                <nz-card nzTitle="端口状态" nzSize="small">
+                  <nz-table [nzData]="portStatusData" [nzPageSize]="10" nzSize="small" [nzShowPagination]="portStatusData.length > 10">
+                    <thead>
+                      <tr>
+                        <th>端口名称</th>
+                        <th>速率(Mbps)</th>
+                        <th>配置状态</th>
+                        <th>运行状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of portStatusData">
+                        <td>{{ item.if_name }}</td>
+                        <td>{{ item.speed }}</td>
+                        <td>
+                          <nz-tag [nzColor]="item.admin_status === 'up' ? 'green' : 'default'">{{ item.admin_status }}</nz-tag>
+                        </td>
+                        <td>
+                          <nz-tag [nzColor]="item.oper_status === 'up' ? 'green' : 'red'">{{ item.oper_status }}</nz-tag>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </nz-table>
+                </nz-card>
+              </div>
+            </div>
+          </ng-container>
         </nz-tab>
         <nz-tab [nzTitle]="favoriteTabTemplate" (nzClick)="loadFavoriteMetrics()">
           <ng-template #favoriteTabTemplate>
