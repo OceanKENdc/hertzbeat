@@ -525,7 +525,6 @@ public class MonitorServiceImpl implements MonitorService {
                         .map(t -> MetricsInfo.builder().name(t.getMetrics())
                                 .favorited(favoritedMetrics.contains(t.getMetrics())).build())
                         .collect(Collectors.toList());
-                monitorDto.setGrafanaDashboard(dashboardService.getDashboardByMonitorId(id));
             } else {
                 boolean isStatic = CommonConstants.SCRAPE_STATIC.equals(monitor.getScrape())
                         || !StringUtils.hasText(monitor.getScrape());
@@ -539,6 +538,7 @@ public class MonitorServiceImpl implements MonitorService {
             }
             monitorDto.setMetrics(metricsInfos);
             monitorDto.setMonitor(monitor);
+            monitorDto.setGrafanaDashboard(dashboardService.getDashboardByMonitorId(id));
             Optional<CollectorMonitorBind> bindOptional = collectorMonitorBindDao
                     .findCollectorMonitorBindByMonitorId(monitor.getId());
             bindOptional.ifPresent(bind -> monitorDto.setCollector(bind.getCollector()));
@@ -953,7 +953,7 @@ public class MonitorServiceImpl implements MonitorService {
         String classpathTemplate = loadClasspathGrafanaTemplate(monitor.getApp());
         if (classpathTemplate != null) {
             try {
-                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId);
+                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId, monitor.getInstance());
             } catch (Exception e) {
                 log.warn("Failed to create Grafana dashboard from classpath template for app {}: {}",
                         monitor.getApp(), e.getMessage());
@@ -974,7 +974,7 @@ public class MonitorServiceImpl implements MonitorService {
         String classpathTemplate = loadClasspathGrafanaTemplate(monitor.getApp());
         if (classpathTemplate != null) {
             try {
-                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId);
+                dashboardService.createOrUpdateDashboard(classpathTemplate, monitorId, monitor.getInstance());
             } catch (Exception e) {
                 log.warn("Failed to update Grafana dashboard from classpath template for app {}: {}",
                         monitor.getApp(), e.getMessage());

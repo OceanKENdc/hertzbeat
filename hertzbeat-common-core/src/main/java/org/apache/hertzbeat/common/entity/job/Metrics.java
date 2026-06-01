@@ -145,6 +145,15 @@ public class Metrics {
      */
     private List<String> units;
     /**
+     * rate computation config — compute delta-per-second from cumulative counters across collection cycles.
+     * counter references an aliasField name (the raw SNMP OID value).
+     * eg:
+     * - field: in_rate
+     *   counter: ifHCInOctets
+     *   unit: bps
+     */
+    private List<RateConfig> rates;
+    /**
      * Monitoring configuration information using the http protocol
      */
     private HttpProtocol http;
@@ -400,6 +409,29 @@ public class Metrics {
         private boolean label = false;
         /**
          * Metric unit
+         */
+        private String unit;
+    }
+
+    /**
+     * Rate computation config — computes delta-per-second from a cumulative counter across collection cycles.
+     * counter references an aliasField (raw SNMP OID value), not a calculated field.
+     */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class RateConfig {
+        /**
+         * Output field name for the computed rate
+         */
+        private String field;
+        /**
+         * Source aliasField name (cumulative counter from SNMP)
+         */
+        private String counter;
+        /**
+         * Output unit (e.g. bps)
          */
         private String unit;
     }

@@ -98,9 +98,6 @@ public class VictoriaMetricsDataStorage extends AbstractHistoryDataStorage {
     private static final String SPILT = "_";
     private static final String MONITOR_METRICS_KEY = "__metrics__";
     private static final String MONITOR_METRIC_KEY = "__metric__";
-    private static final long MAX_WAIT_MS = 500L;
-    private static final int MAX_RETRIES = 3;
-
     private final VictoriaMetricsProperties victoriaMetricsProp;
     private final RestTemplate restTemplate;
     private final BlockingQueue<VictoriaMetricsDataStorage.VictoriaMetricsContent> metricsBufferQueue;
@@ -570,39 +567,17 @@ public class VictoriaMetricsDataStorage extends AbstractHistoryDataStorage {
      * @param contentList victoriaMetricsContent List
      */
     private void sendVictoriaMetrics(List<VictoriaMetricsDataStorage.VictoriaMetricsContent> contentList) {
+        int dropped = 0;
         for (VictoriaMetricsDataStorage.VictoriaMetricsContent content : contentList) {
-            boolean offered = false;
-            int retryCount = 0;
-            while (!offered && retryCount < MAX_RETRIES) {
-                try {
-                    // Attempt to add to the queue for a limited time
-                    offered = metricsBufferQueue.offer(content, MAX_WAIT_MS, TimeUnit.MILLISECONDS);
-                    if (!offered) {
-                        // If the queue is still full, trigger an immediate refresh to free up space
-                        if (retryCount == 0) {
-                            log.debug("victoria metrics buffer queue is full, triggering immediate flush");
-                            triggerImmediateFlush();
-                        }
-                        retryCount++;
-                        // The short sleep allows the queue to clear out
-                        if (retryCount < MAX_RETRIES) {
-                            Thread.sleep(100L * retryCount);
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.error("[Victoria Metrics] Interrupted while offering metrics to buffer queue", e);
-                    break;
-                }
+            if (!metricsBufferQueue.offer(content)) {
+                dropped++;
             }
-            // When the maximum number of retries is reached, if it still cannot be added to the queue, the data is saved directly
-            if (!offered) {
-                log.warn("[Victoria Metrics] Failed to add metrics to buffer after {} retries, saving directly", MAX_RETRIES);
-                try {
-                    doSaveData(contentList);
-                } catch (Exception e) {
-                    log.error("[Victoria Metrics] Failed to save metrics directly: {}", e.getMessage(), e);
-                }
+        }
+        if (dropped > 0) {
+            log.warn("[Victoria Metrics] Buffer queue full, dropped {} metrics items. "
+                     + "Consider increasing buffer-size or decreasing flush-interval.", dropped);
+            if (draining.compareAndSet(false, true)) {
+                triggerImmediateFlush();
             }
         }
         // Refresh in advance to avoid waiting

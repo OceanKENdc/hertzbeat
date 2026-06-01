@@ -87,6 +87,11 @@ public class DashboardService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> createOrUpdateDashboard(String dashboardJson, Long monitorId) {
+        return createOrUpdateDashboard(dashboardJson, monitorId, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<?> createOrUpdateDashboard(String dashboardJson, Long monitorId, String instance) {
         if (!grafanaProperties.enabled()) {
             log.info("HertzBeat Grafana config not enabled");
             throw new RuntimeException("HertzBeat Grafana config not enabled");
@@ -140,7 +145,8 @@ public class DashboardService {
                     String relativeDashboardUrl = grafanaDashboard.getUrl();
                     String fullDashboardUrl = grafanaProperties.exposeUrl().replaceAll("/$", "") + relativeDashboardUrl;
 
-                    grafanaDashboard.setUrl(fullDashboardUrl + KIOSK + REFRESH + INSTANCE + monitorId + useDatasource);
+                    String instanceValue = (instance != null && !instance.isEmpty()) ? instance : String.valueOf(monitorId);
+                    grafanaDashboard.setUrl(fullDashboardUrl + KIOSK + REFRESH + INSTANCE + instanceValue + useDatasource);
 
                     grafanaDashboard.setMonitorId(monitorId);
                     dashboardDao.save(grafanaDashboard);

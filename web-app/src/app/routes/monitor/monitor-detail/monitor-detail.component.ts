@@ -655,6 +655,14 @@ export class MonitorDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  private formatBitrate(bps: number): string {
+    if (!isFinite(bps) || bps < 0) return '-';
+    if (bps >= 1e9) return (bps / 1e9).toFixed(2) + ' Gbps';
+    if (bps >= 1e6) return (bps / 1e6).toFixed(2) + ' Mbps';
+    if (bps >= 1e3) return (bps / 1e3).toFixed(2) + ' Kbps';
+    return bps.toFixed(0) + ' bps';
+  }
+
   private loadSwitchData() {
     if (this.app !== 'huawei_switch') return;
 
@@ -670,11 +678,17 @@ export class MonitorDetailComponent implements OnInit, OnDestroy {
           this.portStatusData = valueRows
             .map((row: any) => {
               const values = row.values || [];
+              const ifName = row.labels?.if_name || values[fieldMap['if_name']]?.origin || '';
+              const rawInRate = parseFloat(values[fieldMap['in_rate']]?.origin) || 0;
+              const rawOutRate = parseFloat(values[fieldMap['out_rate']]?.origin) || 0;
+
               return {
-                if_name: row.labels?.if_name || values[fieldMap['if_name']]?.origin || '',
+                if_name: ifName,
                 speed: values[fieldMap['speed']]?.origin || '',
                 admin_status: this.mapSnmpStatus(values[fieldMap['admin_status']]?.origin || ''),
-                oper_status: this.mapSnmpStatus(values[fieldMap['oper_status']]?.origin || '')
+                oper_status: this.mapSnmpStatus(values[fieldMap['oper_status']]?.origin || ''),
+                in_rate: rawInRate > 0 ? this.formatBitrate(rawInRate) : '-',
+                out_rate: rawOutRate > 0 ? this.formatBitrate(rawOutRate) : '-'
               };
             })
             .filter((item: any) => item.if_name);

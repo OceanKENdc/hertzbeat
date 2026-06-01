@@ -137,6 +137,8 @@
                       <tr>
                         <th>端口名称</th>
                         <th>速率(Mbps)</th>
+                        <th>入流量</th>
+                        <th>出流量</th>
                         <th>配置状态</th>
                         <th>运行状态</th>
                       </tr>
@@ -145,6 +147,12 @@
                       <tr *ngFor="let item of portStatusData">
                         <td>{{ item.if_name }}</td>
                         <td>{{ item.speed }}</td>
+                        <td>
+                          <span [style.color]="item.in_rate === '-' ? '#999' : '#52c41a'">{{ item.in_rate }}</span>
+                        </td>
+                        <td>
+                          <span [style.color]="item.out_rate === '-' ? '#999' : '#1890ff'">{{ item.out_rate }}</span>
+                        </td>
                         <td>
                           <nz-tag [nzColor]="item.admin_status === 'up' ? 'green' : 'default'">{{ item.admin_status }}</nz-tag>
                         </td>

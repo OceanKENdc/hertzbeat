@@ -158,6 +158,8 @@ common:
 
 warehouse:
   store:
+    jpa:
+      enabled: false
     # store history metrics data, enable only one below
     duckdb:
       enabled: false
@@ -171,8 +173,8 @@ warehouse:
       username: root
       password: root
       insert:
-        buffer-size: 100
-        flush-interval: 3
+        buffer-size: 500
+        flush-interval: 2
         compression:
           enabled: false
       cluster:
@@ -331,9 +333,9 @@ scheduler:
 grafana:
   enabled: true
   url: http://127.0.0.1:3000
-  expose-url: http://127.0.0.1:3000
+  expose-url: http://118.122.220.46:3000
   username: admin
-  password: admin
+  password: hertzbeat
 
 hertzbeat:
   collector:

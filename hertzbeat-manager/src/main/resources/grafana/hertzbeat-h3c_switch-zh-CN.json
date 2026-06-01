@@ -188,7 +188,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_in_octets{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m]) * 8 / 1000000",
+          "expr": "interfaces_in_octet_rate{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"} / 1000000",
           "interval": "",
           "legendFormat": "入 {{if_name}}",
           "refId": "A"
@@ -198,7 +198,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_out_octets{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m]) * 8 / 1000000",
+          "expr": "interfaces_out_octet_rate{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"} / 1000000",
           "interval": "",
           "legendFormat": "出 {{if_name}}",
           "refId": "B"
@@ -255,7 +255,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "entity_cpu_usage{job=\"huawei_switch\", instance=\"$instance\"}",
+          "expr": "entity_cpu_usage{job=\"h3c_switch\", instance=\"$instance\"}",
           "interval": "",
           "legendFormat": "{{entity_name}}",
           "refId": "A"
@@ -312,7 +312,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "entity_mem_usage{job=\"huawei_switch\", instance=\"$instance\"}",
+          "expr": "entity_mem_usage{job=\"h3c_switch\", instance=\"$instance\"}",
           "interval": "",
           "legendFormat": "{{entity_name}}",
           "refId": "A"
@@ -398,7 +398,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "entity_temperature{job=\"huawei_switch\", instance=\"$instance\"}",
+          "expr": "entity_temperature{job=\"h3c_switch\", instance=\"$instance\"}",
           "interval": "",
           "legendFormat": "{{entity_name}}",
           "refId": "A"
@@ -515,7 +515,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_in_errors{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m])",
+          "expr": "rate(interfaces_in_errors{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}[5m])",
           "interval": "",
           "legendFormat": "入错包 {{if_name}}",
           "refId": "A"
@@ -525,7 +525,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_out_errors{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m])",
+          "expr": "rate(interfaces_out_errors{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}[5m])",
           "interval": "",
           "legendFormat": "出错包 {{if_name}}",
           "refId": "B"
@@ -535,7 +535,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_in_discards{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m])",
+          "expr": "rate(interfaces_in_discards{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}[5m])",
           "interval": "",
           "legendFormat": "入丢包 {{if_name}}",
           "refId": "C"
@@ -545,7 +545,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(interfaces_out_discards{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}[5m])",
+          "expr": "rate(interfaces_out_discards{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}[5m])",
           "interval": "",
           "legendFormat": "出丢包 {{if_name}}",
           "refId": "D"
@@ -634,6 +634,70 @@
                 "value": "bytes"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "入流量(bps)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bps"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "rgba(50, 50, 50, 0)" },
+                    { "color": "#73BF69", "value": 1000000 },
+                    { "color": "#FADE2A", "value": 100000000 },
+                    { "color": "#FF9830", "value": 500000000 },
+                    { "color": "#F2495C", "value": 1000000000 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "出流量(bps)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bps"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "rgba(50, 50, 50, 0)" },
+                    { "color": "#5794F2", "value": 1000000 },
+                    { "color": "#FADE2A", "value": 100000000 },
+                    { "color": "#FF9830", "value": 500000000 },
+                    { "color": "#F2495C", "value": 1000000000 }
+                  ]
+                }
+              }
+            ]
           }
         ]
       },
@@ -662,7 +726,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "interfaces_oper_status{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}",
+          "expr": "interfaces_oper_status{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -674,7 +738,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "interfaces_admin_status{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}",
+          "expr": "interfaces_admin_status{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -686,7 +750,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "interfaces_speed{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}",
+          "expr": "interfaces_speed{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -698,12 +762,36 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "interfaces_mtu{job=\"huawei_switch\", instance=\"$instance\", if_name=~\"$port\"}",
+          "expr": "interfaces_mtu{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
           "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "interfaces_in_octet_rate{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "interfaces_out_octet_rate{job=\"h3c_switch\", instance=\"$instance\", if_name=~\"^($port)$\"}",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "F"
         }
       ],
       "title": "端口状态",
@@ -729,6 +817,8 @@
               "Value #B": "配置状态",
               "Value #C": "速率(Mbps)",
               "Value #D": "MTU",
+              "Value #E": "入流量(bps)",
+              "Value #F": "出流量(bps)",
               "if_name": "接口名称",
               "if_alias": "端口别名"
             }
@@ -742,7 +832,7 @@
   "schemaVersion": 41,
   "tags": [
     "hertzbeat",
-    "huawei",
+    "h3c",
     "switch",
     "network"
   ],
@@ -761,14 +851,14 @@
       },
       {
         "current": {},
-        "definition": "label_values(interfaces_in_octets{job=\"huawei_switch\"}, instance)",
+        "definition": "label_values(interfaces_in_octet_rate{job=\"h3c_switch\"}, instance)",
         "includeAll": false,
         "label": "设备",
         "name": "instance",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(interfaces_in_octets{job=\"huawei_switch\"}, instance)",
+          "query": "label_values(interfaces_in_octet_rate{job=\"h3c_switch\"}, instance)",
           "refId": "VariableQuery"
         },
         "refresh": 2,
@@ -781,7 +871,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "definition": "label_values(interfaces_in_octets{job=\"huawei_switch\", instance=\"$instance\"}, if_name)",
+        "definition": "label_values(interfaces_in_octet_rate{job=\"h3c_switch\", instance=\"$instance\"}, if_name)",
         "includeAll": true,
         "label": "端口",
         "multi": true,
@@ -789,7 +879,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(interfaces_in_octets{job=\"huawei_switch\", instance=\"$instance\"}, if_name)",
+          "query": "label_values(interfaces_in_octet_rate{job=\"h3c_switch\", instance=\"$instance\"}, if_name)",
           "refId": "VariableQuery"
         },
         "refresh": 2,
@@ -805,8 +895,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "华为交换机监控大屏",
-  "uid": "hertzbeat-huawei-switch",
+  "title": "H3C交换机监控大屏",
+  "uid": "hertzbeat-h3c-switch",
   "version": 1,
   "weekStart": ""
 }

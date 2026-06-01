@@ -56,9 +56,10 @@ public class DashboardController {
      */
     @Operation(summary = "Create dashboard", description = "Create dashboard")
     @PostMapping
-    public ResponseEntity<Message<?>> createDashboard(@RequestParam String dashboardJson, @RequestParam Long monitorId) {
+    public ResponseEntity<Message<?>> createDashboard(@RequestParam String dashboardJson, @RequestParam Long monitorId,
+                                                       @RequestParam(required = false) String instance) {
         try {
-            ResponseEntity<?> response = dashboardService.createOrUpdateDashboard(dashboardJson, monitorId);
+            ResponseEntity<?> response = dashboardService.createOrUpdateDashboard(dashboardJson, monitorId, instance);
             if (response.getStatusCode().is2xxSuccessful()) {
                 return ResponseEntity.ok(Message.success("create dashboard success"));
             }

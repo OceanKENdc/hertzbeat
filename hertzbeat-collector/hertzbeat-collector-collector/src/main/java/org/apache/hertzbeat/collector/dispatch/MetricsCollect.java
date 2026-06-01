@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -121,6 +122,13 @@ public class MetricsCollect implements Runnable, Comparable<MetricsCollect> {
     protected boolean prometheusProxyMode;
 
     protected List<UnitConvert> unitConvertList;
+
+    /**
+     * Stores previous counter values for rate computation across collection cycles.
+     * key: monitorId:metricsName:labelValue:counter
+     * value: [previousCounterValue, previousTimestampMs]
+     */
+    private static final ConcurrentHashMap<String, double[]> PREV_RATE_STATE = new ConcurrentHashMap<>();
 
     public MetricsCollect(Metrics metrics, Timeout timeout,
                           CollectDataDispatch collectDataDispatch,
@@ -241,6 +249,18 @@ public class MetricsCollect implements Runnable, Comparable<MetricsCollect> {
                 fieldBuilder.setUnit(field.getUnit());
             }
             fieldList.add(fieldBuilder.build());
+        }
+        // extend fieldList with rate config fields
+        List<Metrics.RateConfig> rateConfigs = metrics.getRates();
+        if (rateConfigs != null && !rateConfigs.isEmpty()) {
+            for (Metrics.RateConfig rc : rateConfigs) {
+                CollectRep.Field.Builder fieldBuilder = CollectRep.Field.newBuilder();
+                fieldBuilder.setName(rc.getField()).setType((byte) 0);
+                if (rc.getUnit() != null) {
+                    fieldBuilder.setUnit(rc.getUnit());
+                }
+                fieldList.add(fieldBuilder.build());
+            }
         }
         collectData.addAllFields(fieldList);
         List<CollectRep.ValueRow> aliasRowList = collectData.getValuesList();
@@ -380,6 +400,31 @@ public class MetricsCollect implements Runnable, Comparable<MetricsCollect> {
                 }
                 realValueRowBuilder.addColumn(value);
             }
+            // compute rate fields from cumulative counters
+            if (rateConfigs != null && !rateConfigs.isEmpty()) {
+                String labelKey = buildRateLabelKey(metrics, aliasFieldValueMap, fieldAliasMap);
+                long now = System.currentTimeMillis();
+                for (Metrics.RateConfig rc : rateConfigs) {
+                    double rate = 0;
+                    if (labelKey != null) {
+                        Object counterVal = fieldValueMap.get(rc.getCounter());
+                        if (counterVal instanceof Number num) {
+                            String stateKey = id + ":" + metrics.getName() + ":" + labelKey + ":" + rc.getCounter();
+                            double current = num.doubleValue();
+                            double[] prev = PREV_RATE_STATE.get(stateKey);
+                            if (prev != null && current >= prev[0]) {
+                                double delta = current - prev[0];
+                                double timeDelta = (now - (long) prev[1]) / 1000.0;
+                                if (timeDelta > 0) {
+                                    rate = delta * 8 / timeDelta;
+                                }
+                            }
+                            PREV_RATE_STATE.put(stateKey, new double[]{current, (double) now});
+                        }
+                    }
+                    realValueRowBuilder.addColumn(String.valueOf(rate));
+                }
+            }
             aliasFieldValueMap.clear();
             fieldValueMap.clear();
             aliasFieldUnitMap.clear();
@@ -435,6 +480,24 @@ public class MetricsCollect implements Runnable, Comparable<MetricsCollect> {
             return null;
         }
         return new Object[]{field, expression};
+    }
+
+    private String buildRateLabelKey(Metrics metrics, Map<String, String> aliasFieldValueMap,
+                                      Map<String, String> fieldAliasMap) {
+        StringBuilder sb = new StringBuilder();
+        for (Metrics.Field field : metrics.getFields()) {
+            if (field.isLabel()) {
+                String aliasField = fieldAliasMap.getOrDefault(field.getField(), field.getField());
+                String value = aliasFieldValueMap.get(aliasField);
+                if (value != null) {
+                    if (!sb.isEmpty()) {
+                        sb.append(':');
+                    }
+                    sb.append(value);
+                }
+            }
+        }
+        return sb.isEmpty() ? null : sb.toString();
     }
 
     /**

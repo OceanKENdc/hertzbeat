@@ -56,3 +56,4 @@ application-mysql.yml
 application-pg.yml
 /package.json
 /yarn.lock
+/.superpowers/
